@@ -49,15 +49,22 @@ def compare_image_pairs(images):
         # Calculate RMSE
         rmse = calculate_rmse(img1, img2)
         
-        # Generate difference image with red tint
+        # Generate difference image with graduated red tint
         diff = ImageChops.difference(img1, img2)
-        diff_array = np.array(diff)
+        diff_array = np.array(diff, dtype=float)
         
-        # Create RGB image with enhanced red channel for differences
+        # Normalize difference to 0-1 range
+        diff_normalized = diff_array / 255.0
+        
+        # Create RGB image with graduated red tint
         rgb_diff = np.zeros((diff_array.shape[0], diff_array.shape[1], 3), dtype=np.uint8)
-        rgb_diff[:, :, 0] = np.clip(diff_array * 2, 0, 255)  # Red channel enhanced
-        rgb_diff[:, :, 1] = diff_array // 4  # Reduced green
-        rgb_diff[:, :, 2] = diff_array // 4  # Reduced blue
+        
+        # Red channel: lighter (255) for small diffs, darker (128) for large diffs
+        rgb_diff[:, :, 0] = np.uint8(255 - (diff_normalized * 127))  # Red ranges from 255 to 128
+        
+        # Green/Blue channels: white (255) for no diff, transparent (0) for full diff
+        rgb_diff[:, :, 1] = np.uint8(255 * (1 - diff_normalized))  # Green fades to 0
+        rgb_diff[:, :, 2] = np.uint8(255 * (1 - diff_normalized))  # Blue fades to 0
         
         diff_image = Image.fromarray(rgb_diff)
         diff_base64 = image_to_base64(diff_image)
